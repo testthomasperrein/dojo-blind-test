@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import swal from 'sweetalert';
 
 const apiToken =
-  'BQBewu5upiqpbJyov-q7eUh3MuG-nHsDPYMpUnT0DlZyuKzbTjiv4wA-3rufncOfCsBzXfmycogGIdRz-Yx0XGUPCVwBtqd_5yqWjoVFModkWruot---h2AFIADauL8mD9Kk0vIID7cJADPJ-3tpOEu0JG5FD3u8x95_M0kC4eMhIhbjTCOXt5mY99XfMxpXnbU-5EqpM5E5iqHVYesnxDUJE7uxyi6JkiaNtecPf55jNBJ1j9wGsnSjVGzSnbzk7uwjeMWapgzi8LQzffFo5NHdS4y5MG7bNNmkYYzhMrWiwkGQ3sTjsGnGSN78YYsKoFMMiOLUkFDbfeFbJe1Kgd7X5ruHm7g';
+  'BQA_cufmSWBqItIOBxVNSppe1iUsQx6WxxZRSTONm2wIa17UlJpgQ5H0TtEH70Mu3GUCVPo1oYqiTf2br4cyRTzx5LywHbEMTPdFRL6KHOBgyRR9YUwbGooQ-e424Nxvz0fxrum3YaxWYJw2cddchQjMLGeJ63dOEGnxma_uDhY5O_oU10mBtzPDvXhYsWX7wUTV9zO1Rsnnim-4AZ1KpLXusfQrQBrhbCXQa0YuxsdH0muRVDKJH6VZDpf7wCWCaKWkiLWp5S17u7eP_RnVdzEdw0-A6kA2qbSFPEj48tRuLLdwZE0zyrq9mvabZpQXmq-8PNilZQcQiDtaH8zC1TseI9wk0P0kH4SDzg2YB5CxSIdGWMKV5zVnfcau35V4nUdUkEhyeA';
 
 const fetchTracks = async () => {
   const response = await fetch('https://api.spotify.com/v1/me/tracks', {
