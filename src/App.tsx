@@ -3,25 +3,16 @@ import './App.css';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import swal from 'sweetalert';
+import type { AxiosResponse } from 'axios';
+import type {
+  PagingSavedTrackObject,
+  SavedTrackObject,
+  TrackObject,
+} from './lib/spotify/model';
+import { getUsersSavedTracks } from './lib/spotify/api/tracks/tracks';
 
 const apiToken =
-  'BQA_cufmSWBqItIOBxVNSppe1iUsQx6WxxZRSTONm2wIa17UlJpgQ5H0TtEH70Mu3GUCVPo1oYqiTf2br4cyRTzx5LywHbEMTPdFRL6KHOBgyRR9YUwbGooQ-e424Nxvz0fxrum3YaxWYJw2cddchQjMLGeJ63dOEGnxma_uDhY5O_oU10mBtzPDvXhYsWX7wUTV9zO1Rsnnim-4AZ1KpLXusfQrQBrhbCXQa0YuxsdH0muRVDKJH6VZDpf7wCWCaKWkiLWp5S17u7eP_RnVdzEdw0-A6kA2qbSFPEj48tRuLLdwZE0zyrq9mvabZpQXmq-8PNilZQcQiDtaH8zC1TseI9wk0P0kH4SDzg2YB5CxSIdGWMKV5zVnfcau35V4nUdUkEhyeA';
-
-const fetchTracks = async () => {
-  const response = await fetch('https://api.spotify.com/v1/me/tracks', {
-    method: 'GET',
-    headers: {
-      Authorization: 'Bearer ' + apiToken,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Fetching tracks failed with status ${response.status}`);
-  }
-  const data = (await response.json()) as { items: any[] };
-
-  return data.items;
-};
+  'BQCrq2xmH59ZrnMJDoC4oWmx-OX_Vue6HMs9rI3bNN5Q5t4RXInSu5pLONqxXwYjyTMn4qTMZDrsgpdwoNOGQ2AqIC20aauYRsTHG2b7NQhbsoH9A6jWF1839HBfOdZtKdVJDE4zYe0xjbkgLJ1M_XftSqIAHkuDNhwCXEAPXcuYfzlnXF683n6lLbFRESHvCmsxOApkylmzOLybPlZQLS6-z2VMEI95-7oLGnX2U0nPh3is02ehbtk1XEVBTydHrDZy9GC3dB9VgJC5ad1yX1WZRoulM3onCe_J7hPc0Wt-tzTGh-9kbvOsXqaWL-fsI6sDPAUsTtJ_ZT_nLQHp9GzQpXAuw2grAMHeqwoBtHqzupXCgnzm_-yb2zfTa3rJ9erhnhPUpg';
 
 const pickRandomTrack = (tracks: any[]) => {
   return tracks[Math.floor(Math.random() * tracks.length)]!;
@@ -31,10 +22,10 @@ const shuffleArray = (tracks: any[]) => {
   return tracks.sort(() => Math.random() - 0.5);
 };
 
-const AlbumCover = ({ track }: { track: any }) => {
+const AlbumCover = ({ track }: { track: TrackObject | undefined }) => {
   return (
     <img
-      src={track.album.images?.[0]?.url ?? ''}
+      src={track?.album?.images?.[0]?.url ?? ''}
       style={{ width: 200, height: 200 }}
     />
   );
@@ -44,7 +35,7 @@ const TrackButton = ({
   track,
   onClick,
 }: {
-  track: any;
+  track: SavedTrackObject;
   onClick: () => void;
 }) => {
   return (
@@ -56,16 +47,28 @@ const TrackButton = ({
 };
 
 const App = () => {
+  const getTracks = async (): Promise<SavedTrackObject[]> => {
+    const res: AxiosResponse<PagingSavedTrackObject> =
+      await getUsersSavedTracks(
+        {},
+        { headers: { Authorization: `Bearer ${apiToken}` } },
+      );
+    return res.data.items ?? [];
+  };
+
   const {
-    data: tracks,
+    data: tracks = [],
     isSuccess,
     isLoading,
-  } = useQuery({ queryKey: ['tracks'], queryFn: fetchTracks });
+  } = useQuery<SavedTrackObject[]>({
+    queryKey: ['tracks'],
+    queryFn: getTracks,
+  });
 
-  const [currentTrack, setCurrentTrack] = useState<any | undefined>(
-    undefined,
-  );
-  const [trackChoices, setTrackChoices] = useState<any[]>([]);
+  const [currentTrack, setCurrentTrack] = useState<
+    SavedTrackObject | undefined
+  >(undefined);
+  const [trackChoices, setTrackChoices] = useState<SavedTrackObject[]>([]);
 
   useEffect(() => {
     if (!tracks) {
@@ -110,8 +113,12 @@ const App = () => {
         )}
       </div>
       <div className="App-buttons">
-        {trackChoices.map(track => (
-          <TrackButton track={track} onClick={() => checkAnswer(track)} />
+        {trackChoices.map((track, index) => (
+          <TrackButton
+            key={index}
+            track={track}
+            onClick={() => checkAnswer(track)}
+          />
         ))}
       </div>
     </div>
