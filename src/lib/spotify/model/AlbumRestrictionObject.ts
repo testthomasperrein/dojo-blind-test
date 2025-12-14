@@ -1,3 +1,3 @@
 export type AlbumRestrictionObject = {
-reason?: "market" | "product" | "explicit";
+  reason?: "market" | "product" | "explicit";
 };

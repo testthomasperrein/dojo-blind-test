@@ -100,12 +100,22 @@ function getGeneratedType(typeSchema, imports) {
         })
         .join("\n");
 
-      return `{\n${body}\n}`;
+      return `{\n${indent(body)}\n}`;
     }
 
     default:
       return "unknown"; // le type neutre de typescript
   }
+}
+
+function indent(text) {
+  const spaces = 2
+  const pad = " ".repeat(spaces);
+  return text
+    .split("\n")
+    .filter((l) => l.trim().length > 0)
+    .map((l) => pad + l)
+    .join("\n");
 }
 
 generateSpotifyClient();
