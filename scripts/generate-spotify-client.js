@@ -56,9 +56,7 @@ function getGeneratedType(typeSchema, imports) {
   }
 
   if (typeSchema.oneOf) {
-    const variants = (typeSchema.oneOf ?? typeSchema.anyOf);
-
-    return variants
+    return typeSchema.oneOf
       .map((schema) => getGeneratedType(schema, imports))
       .join(" | ");
   }
