@@ -11,15 +11,40 @@ import type {
 } from './lib/spotify/model';
 import { getUsersSavedTracks } from './lib/spotify/api/tracks/tracks';
 
-const apiToken =
-  'BQCrq2xmH59ZrnMJDoC4oWmx-OX_Vue6HMs9rI3bNN5Q5t4RXInSu5pLONqxXwYjyTMn4qTMZDrsgpdwoNOGQ2AqIC20aauYRsTHG2b7NQhbsoH9A6jWF1839HBfOdZtKdVJDE4zYe0xjbkgLJ1M_XftSqIAHkuDNhwCXEAPXcuYfzlnXF683n6lLbFRESHvCmsxOApkylmzOLybPlZQLS6-z2VMEI95-7oLGnX2U0nPh3is02ehbtk1XEVBTydHrDZy9GC3dB9VgJC5ad1yX1WZRoulM3onCe_J7hPc0Wt-tzTGh-9kbvOsXqaWL-fsI6sDPAUsTtJ_ZT_nLQHp9GzQpXAuw2grAMHeqwoBtHqzupXCgnzm_-yb2zfTa3rJ9erhnhPUpg';
+const spotifyApiToken =
+  'BQBWcNKR80VEYh9CN4NuPzl27YlUwl238kjGRZ1qG0sJsqR3SLTIYK940lmfksZCWf6-9gsstBIdMh_aYtTyiaTNlrsDOJohFTyK1W7fa2U34EWmCLCP9RB7quIXYt7J_6_e3yaeISbv3GNTYDZqjdmGtfV0GfPD6TQT3VOL8O6qe3H5HPcVkSMeTW1V83umBxwmoibWpaZy51dk_TqZvmUAgDDWIqwqtuMmLSOgh_o4fYNy61E4U_UolLrQtbZ3-v4BWvbewsochcYQe7IVkyZcVdJ-LPdbw25FiG_lUVZ-haifzkYZZUk42LyeBhKg0ybkjIvvdcDIZQcDSy4J0ME4eATzdIrWfGnLTNJlB2Wl5ebhMw0l4mkj7_nmut3hcORX3wIhxA';
+
+// Deezer access token (optionnel - l'API publique ne le requiert pas pour /search)
+const deezerApiToken = '';
 
 const pickRandomTrack = (tracks: any[]) => {
+  if (tracks.length === 0) return null;
   return tracks[Math.floor(Math.random() * tracks.length)]!;
 };
 
 const shuffleArray = (tracks: any[]) => {
   return tracks.sort(() => Math.random() - 0.5);
+};
+
+const getDeezerPreview = async (
+  trackName: string,
+  artistName: string,
+): Promise<string | null> => {
+  try {
+    const query = encodeURIComponent(`${artistName} ${trackName}`);
+    // Utiliser le proxy Vite configuré
+    const url = `/api/deezer/search?q=${query}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.data && data.data.length > 0) {
+      return data.data[0].preview;
+    }
+    return null;
+  } catch (error) {
+    console.error('Erreur lors de la recherche sur Deezer:', error);
+    return null;
+  }
 };
 
 const AlbumCover = ({ track }: { track: TrackObject | undefined }) => {
@@ -51,7 +76,7 @@ const App = () => {
     const res: AxiosResponse<PagingSavedTrackObject> =
       await getUsersSavedTracks(
         {},
-        { headers: { Authorization: `Bearer ${apiToken}` } },
+        { headers: { Authorization: `Bearer ${spotifyApiToken}` } },
       );
     return res.data.items ?? [];
   };
@@ -69,19 +94,54 @@ const App = () => {
     SavedTrackObject | undefined
   >(undefined);
   const [trackChoices, setTrackChoices] = useState<SavedTrackObject[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   useEffect(() => {
-    if (!tracks) {
+    if (!tracks || tracks.length < 3) {
       return;
     }
 
     const rightTrack = pickRandomTrack(tracks);
+    if (!rightTrack) return;
+
     setCurrentTrack(rightTrack);
 
-    const wrongTracks = [pickRandomTrack(tracks), pickRandomTrack(tracks)];
+    // Filtrer pour exclure la bonne réponse
+    const availableTracks = tracks.filter(
+      t => t.track?.id !== rightTrack.track?.id,
+    );
+
+    // Choisir 2 mauvaises réponses uniques
+    const wrongTracks: SavedTrackObject[] = [];
+    const usedIds = new Set<string>();
+
+    while (wrongTracks.length < 2 && availableTracks.length > 0) {
+      const track = pickRandomTrack(availableTracks);
+      if (track && track.track?.id && !usedIds.has(track.track.id)) {
+        usedIds.add(track.track.id);
+        wrongTracks.push(track);
+      }
+    }
+
     const choices = shuffleArray([rightTrack, ...wrongTracks]);
     setTrackChoices(choices);
   }, [tracks]);
+
+  useEffect(() => {
+    const fetchDeezerPreview = async () => {
+      if (!currentTrack?.track) return;
+
+      const trackName = currentTrack.track.name ?? '';
+      const artistName = currentTrack.track.artists?.[0]?.name ?? '';
+
+      const preview = await getDeezerPreview(trackName, artistName);
+      if (preview) {
+        setPreviewUrl(preview);
+      }
+    };
+
+    fetchDeezerPreview();
+  }, [currentTrack]);
 
   const checkAnswer = (track: any) => {
     if (track.track?.id == currentTrack?.track?.id) {
@@ -103,23 +163,25 @@ const App = () => {
         ) : (
           <div>
             <div>
-              <audio
-                src={currentTrack?.track?.preview_url ?? ''}
-                controls
-                autoPlay
-              />
+              {previewUrl ? (
+                <audio key={previewUrl} src={previewUrl} controls autoPlay />
+              ) : (
+                <p>Chargement de l'extrait audio...</p>
+              )}
             </div>
           </div>
         )}
       </div>
       <div className="App-buttons">
-        {trackChoices.map((track, index) => (
-          <TrackButton
-            key={index}
-            track={track}
-            onClick={() => checkAnswer(track)}
-          />
-        ))}
+        {trackChoices
+          .filter(track => track?.track)
+          .map((track, index) => (
+            <TrackButton
+              key={index}
+              track={track}
+              onClick={() => checkAnswer(track)}
+            />
+          ))}
       </div>
     </div>
   );
